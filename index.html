@@ -376,11 +376,32 @@ function tileRect(i){
   return k===0?{x:0,y:0,w:CORNER,h:CORNER,side:3}:{x:0,y:CORNER+(k-1)*TW,w:DEPTH,h:TW,side:3};
 }
 function center(i){const r=tileRect(i);return{cx:r.x+r.w/2,cy:r.y+r.h/2};}
-function building(lv,c){ // 1 house, 2 building, 3 hotel — drawn around (0,0) sitting on y=8
-  if(lv>=3)return `<rect x="-11" y="-22" width="22" height="30" fill="${c}" stroke="#2b2340" stroke-width="1.2"/><rect x="-13" y="-26" width="26" height="5" fill="#2b2340"/><g fill="#fff3c4"><rect x="-8" y="-18" width="4" height="4"/><rect x="-2" y="-18" width="4" height="4"/><rect x="4" y="-18" width="4" height="4"/><rect x="-8" y="-11" width="4" height="4"/><rect x="-2" y="-11" width="4" height="4"/><rect x="4" y="-11" width="4" height="4"/><rect x="-8" y="-4" width="4" height="4"/><rect x="4" y="-4" width="4" height="4"/></g><rect x="-3" y="1" width="6" height="7" fill="#2b2340"/><path d="M0 -34l2 4.2 4.6.5-3.4 3.1.9 4.6L0 -24l-4.1 2.4.9-4.6-3.4-3.1 4.6-.5z" fill="#ffd34d"/>`;
-  if(lv===2)return `<rect x="-9" y="-14" width="18" height="22" fill="${c}" stroke="#2b2340" stroke-width="1.2"/><rect x="-10" y="-17" width="20" height="4" fill="#2b2340"/><g fill="#fff3c4"><rect x="-6" y="-10" width="4" height="4"/><rect x="2" y="-10" width="4" height="4"/><rect x="-6" y="-3" width="4" height="4"/><rect x="2" y="-3" width="4" height="4"/></g><rect x="-2" y="2" width="4" height="6" fill="#2b2340"/>`;
-  return `<rect x="-7" y="-2" width="14" height="10" fill="${c}" stroke="#2b2340" stroke-width="1.2"/><path d="M-9 -2L0 -10 9 -2z" fill="#ff6b4a" stroke="#2b2340" stroke-width="1.2"/><rect x="-2" y="2" width="4" height="6" fill="#2b2340"/>`;
+const INK='#2b2340';
+function building(lv,ch){ // per-group building set, in the character's color, with the character's face on a flag. Drawn around (0,0), ground at y=8.
+  const c=CHARS[ch],col=c.c,g=c.g;
+  const flag=(h)=>`<rect x="9" y="${-h}" width="1.5" height="${h+6}" fill="${INK}"/><rect x="10.5" y="${-h}" width="12" height="9" fill="#fff" stroke="${INK}" stroke-width="1"/><g transform="translate(11.5 ${-h+1}) scale(.16)">${charSVG(c,60).replace('<svg','<svg x="-4" y="-4"')}</g>`;
+  const win=(x,y)=>`<rect x="${x}" y="${y}" width="4" height="4" fill="#fff3c4"/>`;
+  if(g==='hero'){
+    if(lv===1)return `<path d="M-10 8V-2a10 10 0 0 1 20 0V8z" fill="${col}" stroke="${INK}" stroke-width="1.2"/><rect x="-3" y="1" width="6" height="7" fill="${INK}"/><circle cx="0" cy="-4" r="2.5" fill="#fff3c4"/>${flag(14)}`;
+    if(lv===2)return `<rect x="-8" y="-20" width="16" height="28" fill="${col}" stroke="${INK}" stroke-width="1.2"/><path d="M-10 -20h20l-3-6h-14z" fill="${INK}"/><rect x="-1" y="-32" width="2" height="6" fill="${INK}"/><circle cx="0" cy="-33" r="2.5" fill="#ffd34d"/>${win(-5,-16)}${win(1,-16)}${win(-5,-9)}${win(1,-9)}<rect x="-2" y="2" width="4" height="6" fill="${INK}"/>${flag(24)}`;
+    return `<ellipse cx="0" cy="-22" rx="14" ry="6" fill="${col}" stroke="${INK}" stroke-width="1.2"/><path d="M-6 -20L-8 8h16l-2-28z" fill="${col}" stroke="${INK}" stroke-width="1.2"/><ellipse cx="0" cy="-26" rx="8" ry="5" fill="#bfe6ff" stroke="${INK}" stroke-width="1"/><circle cx="-10" cy="-32" r="1.5" fill="#ffd34d"/><circle cx="10" cy="-30" r="1.5" fill="#ffd34d"/>${win(-3,-12)}${win(-3,-4)}<rect x="-2" y="2" width="4" height="6" fill="${INK}"/>${flag(34)}`;
+  }
+  if(g==='dino'){
+    if(lv===1)return `<path d="M-11 8C-11 -4 -5 -8 0 -8s11 4 11 16z" fill="#8a5a3c" stroke="${INK}" stroke-width="1.2"/><path d="M-5 8c0-6 2-9 5-9s5 3 5 9z" fill="${INK}"/><circle cx="-7" cy="-1" r="2" fill="${col}"/><circle cx="7" cy="-2" r="2" fill="${col}"/>${flag(12)}`;
+    if(lv===2)return `<path d="M-14 8L-4 -20h8L14 8z" fill="#6e4530" stroke="${INK}" stroke-width="1.2"/><path d="M-4 -20h8l-2-5h-4z" fill="${col}"/><path d="M-3 -19q3 4 6 0" stroke="#ff6b4a" stroke-width="2" fill="none"/><circle cx="2" cy="-26" r="2" fill="#ffd34d"/><rect x="-2" y="2" width="4" height="6" fill="${INK}"/>${win(-6,-4)}${win(2,-4)}${flag(26)}`;
+    return `<rect x="-12" y="-14" width="24" height="22" fill="${col}" stroke="${INK}" stroke-width="1.2"/><path d="M-12 -14l3-6 3 6 3-6 3 6 3-6 3 6 3-6 3 6z" fill="${col}" stroke="${INK}" stroke-width="1"/><rect x="-4" y="-30" width="8" height="16" fill="${col}" stroke="${INK}" stroke-width="1.2"/><path d="M-4 -30l2-5 2 5 2-5 2 5z" fill="${INK}"/><path d="M-9 -2h18M-9 2h18" stroke="#fff3c4" stroke-width="1.5"/>${win(-9,-10)}${win(5,-10)}<rect x="-3" y="1" width="6" height="7" fill="${INK}"/>${flag(34)}`;
+  }
+  if(g==='animal'){
+    if(lv===1)return `<ellipse cx="0" cy="3" rx="11" ry="5" fill="#b98a5a" stroke="${INK}" stroke-width="1.2"/><path d="M-11 3q0-7 11-7t11 7" fill="#d9b98a" stroke="${INK}" stroke-width="1"/><ellipse cx="-3" cy="-2" rx="3" ry="4" fill="${col}"/><ellipse cx="4" cy="-2" rx="3" ry="4" fill="${col}"/>${flag(12)}`;
+    if(lv===2)return `<rect x="-2" y="-6" width="4" height="14" fill="#8a5a3c"/><circle cx="0" cy="-12" r="11" fill="#3fa85c"/><rect x="-8" y="-12" width="16" height="12" fill="${col}" stroke="${INK}" stroke-width="1.2"/><path d="M-10 -12L0 -20l10 8z" fill="#ff6b4a" stroke="${INK}" stroke-width="1"/>${win(-5,-9)}${win(1,-9)}<rect x="-6" y="0" width="12" height="2" fill="#8a5a3c"/>${flag(26)}`;
+    return `<rect x="-13" y="-10" width="26" height="18" fill="${col}" stroke="${INK}" stroke-width="1.2"/><rect x="-13" y="-10" width="6" height="-0"/><rect x="-13" y="-22" width="6" height="12" fill="${col}" stroke="${INK}" stroke-width="1"/><rect x="7" y="-22" width="6" height="12" fill="${col}" stroke="${INK}" stroke-width="1"/><path d="M-13 -22l3-5 3 5zM7 -22l3-5 3 5z" fill="#ff6b4a"/><path d="M-5 -10L0 -30l5 20z" fill="${col}" stroke="${INK}" stroke-width="1"/><circle cx="0" cy="-32" r="3" fill="#3fa85c"/><circle cx="-3" cy="-29" r="2.5" fill="#56c173"/><circle cx="3" cy="-29" r="2.5" fill="#56c173"/>${win(-9,-5)}${win(5,-5)}<rect x="-3" y="1" width="6" height="7" fill="${INK}"/>${flag(30)}`;
+  }
+  // insect
+  if(lv===1)return `<rect x="-3" y="-2" width="6" height="10" fill="#fff3c4" stroke="${INK}" stroke-width="1.2"/><path d="M-11 -2q11-14 22 0z" fill="${col}" stroke="${INK}" stroke-width="1.2"/><circle cx="-5" cy="-6" r="1.8" fill="#fff"/><circle cx="3" cy="-8" r="1.8" fill="#fff"/><rect x="-1.5" y="2" width="3" height="5" fill="${INK}"/>${flag(12)}`;
+  if(lv===2)return `<path d="M-8 -22h16l4 7-4 7 4 7-4 7-4 2h-8l-4-2-4-7 4-7-4-7z" fill="${col}" stroke="${INK}" stroke-width="1.2"/><path d="M-8 -8h16M-8 -1h16" stroke="${INK}" stroke-width="1" opacity=".4"/><circle cx="0" cy="0" r="3" fill="${INK}"/>${win(-4,-18)}${win(1,-18)}${flag(26)}`;
+  return `<rect x="-2" y="-14" width="4" height="22" fill="#56c173"/><g transform="translate(0 -20)"><g fill="${col}" stroke="${INK}" stroke-width="1"><ellipse cx="0" cy="-10" rx="4" ry="7"/><ellipse cx="0" cy="10" rx="4" ry="7"/><ellipse cx="-10" cy="0" rx="7" ry="4"/><ellipse cx="10" cy="0" rx="7" ry="4"/><ellipse cx="-7" cy="-7" rx="5" ry="5"/><ellipse cx="7" cy="-7" rx="5" ry="5"/><ellipse cx="-7" cy="7" rx="5" ry="5"/><ellipse cx="7" cy="7" rx="5" ry="5"/></g><circle r="5" fill="#ffd34d" stroke="${INK}" stroke-width="1"/><rect x="-2" y="-2" width="4" height="4" fill="${INK}"/></g><path d="M-8 8q8-10 16 0z" fill="#3fa85c"/>${flag(32)}`;
 }
+
 function tileIcon(i,cx,cy){
   if(i===0)return `<text x="${cx}" y="${cy+5}" text-anchor="middle" class="corner">${t('start_cell')}</text>`;
   if(i===N-1)return `<text x="${cx}" y="${cy+5}" text-anchor="middle" class="corner">${t('goal_cell')}</text>`;
@@ -445,7 +466,7 @@ function moveToken(pi,to,cb){
   const step=()=>{if(p.pos===to){cb&&cb();return;}p.pos+=dir;placeTokens();SFX.hop();setTimeout(step,190);};
   step();
 }
-function drawOwners(){for(let i=0;i<N;i++){const o=S.owner[i];const g=$('own'+i);if(!g)continue;g.setAttribute('opacity',o==null?0:1);if(o!=null)g.innerHTML=building(S.level[i]||1,CHARS[S.players[o].ch].c);}}
+function drawOwners(){for(let i=0;i<N;i++){const o=S.owner[i];const g=$('own'+i);if(!g)continue;g.setAttribute('opacity',o==null?0:1);if(o!=null)g.innerHTML=building(S.level[i]||1,S.players[o].ch);}}
 // ---------- sound effects: synthesized, no files; everything plays after a tap so autoplay rules are satisfied ----------
 const SFX=(()=>{
   let ctx=null,muted=false;
