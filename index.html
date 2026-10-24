@@ -386,10 +386,18 @@ const DICT={
 };
 const WORDS={ko:[],en:[]},MEAN={ko:{},en:{}};
 for(const L in DICT)DICT[L].split('|').forEach(e=>{const i=e.indexOf(':');const w=e.slice(0,i).trim(),m=e.slice(i+1).trim();if(!WORDS[L].includes(w))WORDS[L].push(w);MEAN[L][w]=m;});
+const KIDPART=new Set([...Object.keys({}),'집','길','물','밥','국','꽃','새','돌','방','산','손','말','차','배','문','불','비','눈','발','날','밤','빵','옷','책','종','잎','술','돈','땅','글','꿈','줄','섬','강','빛','숲','털','뼈','몸','입','코','귀','해','달','별','감','콩','꿀','알','풀','벌','곰','소','개','닭','양','말','키','탑','북','춤','집','잔','칼','공','사람','소리','나라','아이','엄마','아빠','나무','동물','학교','친구','놀이','이름','나이','시간','노래','음식','그림','선생','가게','마을','모자','장난','바다','하늘','바람','구름','마음','생각','이야기']);
+WORDS.ko.forEach(w=>KIDPART.add(w));
 function hintWord(){ // kid list first; then any dictionary noun of 2–3 syllables that starts with the needed syllable
-  const req=required();const fits=w=>{if(S.used.has(w))return false;if(S.lang==='ko'&&deadEnd(w))return false;if(!req)return true;return S.lang==='ko'?(w[0]===req||w[0]===DUEUM[req]):w[0]===req.toLowerCase();};
+  const req=required();const fits=w=>check(w).ok; // a hint must pass the very same test as a spoken word (2+ syllables, right start, unused, not a dead end)
   let ok=WORDS[S.lang].filter(fits);
-  if(!ok.length&&S.lang==='ko'&&NOUNS&&req){ok=[];for(const w of NOUNS){if(w.length<=3&&(w[0]===req||w[0]===DUEUM[req])&&fits(w)){ok.push(w);if(ok.length>400)break;}}}
+  if(!ok.length&&S.lang==='ko'&&NOUNS&&req){
+    // tier 2: dictionary words of 2–3 syllables built from kid-friendly parts (종+소리, 나무+꾼), tier 3: any 2–3 syllable dictionary word
+    const easy=[],any=[];
+    for(const w of NOUNS){if(w.length>3||!(w[0]===req||w[0]===DUEUM[req])||!fits(w))continue;
+      const rest=w.slice(1),head=w.slice(0,2);if((rest.length>=2&&KIDPART.has(rest))||(w.length===3&&KIDPART.has(head)&&KIDPART.has(w[2])))easy.push(w);else any.push(w);
+      if(easy.length>200)break;}
+    ok=easy.length?easy:any.slice(0,400);}
   if(!ok.length)return null;
   return ok[Math.floor(Math.random()*ok.length)];
 }
