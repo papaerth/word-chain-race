@@ -93,6 +93,11 @@ header .lang{margin-left:auto}
 #board .cname{font-family:var(--display);font-size:11px;fill:#2b2340}
 #board .cpos{font-family:var(--display);font-size:14px;fill:#ff6b4a}
 .token{transition:transform .17s cubic-bezier(.3,1.4,.5,1)}
+.pickring{fill:rgba(255,211,61,.35);stroke:#ff6b4a;stroke-width:3;cursor:pointer;animation:ring 1s ease-in-out infinite}
+.pickring.flag{fill:rgba(79,182,255,.3);stroke:#2a7fc4}
+.tile{cursor:pointer}
+@keyframes ring{0%,100%{stroke-width:3;r:24}50%{stroke-width:5;r:27}}
+@media (prefers-reduced-motion:reduce){.pickring{animation:none}}
 .own{transition:opacity .3s}
 @media (prefers-reduced-motion:reduce){.token{transition:none}}
 .standings{display:flex;justify-content:space-between;gap:8px;margin-top:8px;font-size:.9rem}
@@ -248,6 +253,7 @@ header .lang{margin-left:auto}
     </div>
     <div class="hintbox" id="hintbox" hidden></div>
     <div class="typing" id="typing" hidden><input id="typed" autocomplete="off" aria-label="type a word"><button id="typego" data-t="typego">입력</button></div>
+    <div class="row"><button class="primary" id="maxbtn" hidden></button></div>
     <div class="tools">
       <button id="keybtn" title="type">⌨️</button>
       <button id="sos" title="hint"></button>
@@ -358,26 +364,26 @@ function charSVG(c,size){
 const T={
  ko:{title:'끝말잇기 레이스',kid:'아이 모드',back:'← 1번 다시 고르기',next1:'다음 사람 →',next2:'출발!',pick1:'1번 캐릭터 고르기',pick2:'2번 캐릭터 고르기',howto:'놀이 방법',map:'레이스 지도',chance:'찬스 카드',ok:'확인',
   accept:'맞아요!',retry:'다시 말하기',typego:'입력',pass:'모르겠어요 (패스)',undo:'반칙! 되돌리기',quit:'처음으로',again:'다시 하기',usedlbl:'나온 단어 (다시 못 써요)',hint:'힌트 보기 (남은 {n}번)',hintNone:'힌트 없음',sosBtn:'힌트',hintShow:'이런 단어 어때요?',hintEmpty:'이 글자로 시작하는 힌트가 없어요 (힌트는 안 썼어요)',deadEnd:'"{s}"(으)로 시작하는 말이 없어서 안 돼요 (한방 단어 금지)',noword:'이 글자로 시작하는 말이 없어요!',freeword:'아무 단어나 말해요',micErr:'마이크 오류: {e}. 아래에 글자로 입력하세요.',
-  rules:['출발하면 마이크가 계속 듣고 있어요. <b>시간 제한은 없어요.</b> <b>어려운 말일수록 멀리!</b> ★ 쉬운 말 1칸 · ★★ 사전 단어 2칸 · ★★★ 4글자 이상 사전 단어 3칸. 5초 안에 말하면 +1칸 (아이 모드는 10초). 표준국어대사전에 없는 말은 안 돼요 (어른이 "그래도 인정"하면 2칸).','<b>땅 주인</b>: 내가 멈춘 칸엔 내 집이 생겨요. 내 땅에 또 멈추면 집→빌딩→호텔로 발전! 상대가 내 땅에 멈추면 통행료로 집 1칸·빌딩 2칸·호텔 3칸 뒤로. 한 바퀴 끝나도 땅은 그대로 다음 바퀴로!','⭐ 칸은 +2, 🍌 칸은 <b>탈출 퀴즈</b>: 한 단어만 더 말하면 그대로! 못 하면 2칸 뒤로. ? 칸은 찬스 카드(12종).','<b>점수</b>: 32번 도착 +5점, 집 1점·빌딩 2점·호텔 3점. 라운드를 이어 가며 <b>20점을 먼저 넘기면 최종 우승!</b>','두 글자 이상, 한 번 쓴 단어는 다시 못 써요. 사전에 없는 말은 ↩️ 반칙으로 되돌리고, 이을 말이 없는 글자(한방 단어)는 자동으로 막혀요. 그래도 막히면 🆘: 아무 단어나 말하고 계속!'],
-  legend:[['#2f9a52','⭐ 보너스 +2'],['#e0443c','🍌 함정 −2'],['#8e3fd1','? 찬스'],['#ffd34d','🏠 내 땅']],
+  rules:['출발하면 마이크가 계속 듣고 있어요. <b>시간 제한은 없어요.</b> <b>어려운 말일수록 멀리!</b> ★ 쉬운 말 1칸 · ★★ 사전 단어 2칸 · ★★★ 4글자 이상 사전 단어 3칸. 5초 안에 말하면 +1칸 (아이 모드는 10초). 표준국어대사전에 없는 말은 안 돼요 (어른이 "그래도 인정"하면 2칸).','<b>땅 주인</b>: 내가 멈춘 칸엔 내 집이 생겨요. 내 땅에 또 멈추면 집→빌딩→호텔로 발전! 상대가 내 땅에 멈추면 통행료로 집 1칸·빌딩 2칸·호텔 3칸 뒤로. 한 바퀴 끝나도 땅은 그대로 다음 바퀴로!','⭐ 칸은 +2, 🍌 칸은 <b>탈출 퀴즈</b>: 한 단어만 더 말하면 그대로! 못 하면 2칸 뒤로. ? 칸은 찬스 카드(18종). 밀려간 칸에서도 땅·통행료가 그대로 적용돼요.','<b>점수</b>: ★★ 보통 말 +1점·★★★ 어려운 말 +2점, 32번 도착 +5점, 집 1·빌딩 2·호텔 3점. <b>30점을 먼저 넘기면 그 순간 최종 우승!</b>','단어로 얻은 칸 수는 <b>최대</b>예요. 그 안에서 멈출 칸을 직접 골라요 — 빈 땅에 서거나, 내 집에 서서 키우거나, 상대 호텔을 피하거나! ★★★ 어려운 말을 하면 빈 칸 아무 데나 깃발 하나 덤.','🚉 역에 서면 반대편 역으로 순간이동, 🏗️ 공사장에 서면 내 건물이 공짜로 한 단계 커져요.','두 글자 이상, 한 번 쓴 단어는 다시 못 써요. 사전에 없는 말은 ↩️ 반칙으로 되돌리고, 이을 말이 없는 글자(한방 단어)는 자동으로 막혀요. 그래도 막히면 🆘: 아무 단어나 말하고 계속!'],
+  legend:[],station_tag:'역',works_tag:'공사',station:'🚉 순간이동역! 반대편 역으로',works:'🏗️ 공사장! 내 건물이 한 단계 커져요',worksNone:'🏗️ 공사장! 건물이 없어서 +1점',choose:'멈출 칸을 골라요 (최대 {n}칸)',goMax:'끝까지 {n}칸!',wordPts:'+{n}점',flagPick:'★★★ 어려운 말! 빈 칸 하나를 골라 깃발을 꽂아요',flagSkip:'건너뛰기',
   any:'아무 단어나',needlbl:'이 글자로 시작:',last:'앞 단어',turnOf:'차례',listening:'듣고 있어요… 말하세요!',tapMic:'마이크를 한 번 누르면 계속 들어요',noMic:'이 화면에서는 마이크를 쓸 수 없어요. 아래에 글자로 입력하세요.',micDenied:'마이크 사용이 거부됐어요. 글자로 입력하세요.',nothing:'잘 안 들렸어요. 다시 말해 보세요.',
   tooShort:'두 글자 이상이어야 해요',wrongStart:'"{s}"(으)로 시작해야 해요',used:'이미 나온 단어예요',notHangul:'한글 단어만 돼요',
   move:'{n}칸 전진!',moveWhy:'{len}글자 {a}칸{fast}',fast:' + 빨리 말해서 1칸',bonus:'보너스 칸! +2',trap:'🍌 미끄럼 칸! 한 단어 더 말하면 탈출!',escaped:'탈출 성공! 제자리!',slipped:'미끄러졌어요! 뒤로 2',trapTurn:'탈출 퀴즈! 한 단어만 더!',toll:'{n}의 {b}! 통행료 {k}칸 뒤로',claim:'{n}칸은 이제 내 땅!',bld:['집','빌딩','호텔'],upgrade:'{b}으로 발전!',lap:'한 바퀴 더 (땅 유지)',newgame:'새로 하기',round:'라운드',roundWins:'라운드 승리',passed:'패스! 1칸 뒤로',undone:'되돌렸어요',win:'{n} 승리!',words:'말한 단어',avg:'평균 응답',lands:'내 땅',steps:['2글자 1칸','3글자 2칸','4글자+ 3칸'],fastchip:'빨리 +1',start_cell:'출발',goal_cell:'도착',
   cards:[{t:'한 번 더!',d:'바로 한 번 더 말할 수 있어요.'},{t:'점프 3칸',d:'앞으로 3칸 뛰어요.'},{t:'자리 바꾸기',d:'상대와 자리를 바꿔요!'},{t:'미끄러짐',d:'뒤로 2칸 미끄러졌어요.'},{t:'땅 선물',d:'지금 서 있는 칸 양옆이 내 땅이 돼요.'},
    {t:'공짜 공사',d:'내 건물 하나가 한 단계 커져요! (없으면 지금 칸이 내 땅)'},{t:'철거반 출동',d:'상대의 가장 큰 건물이 한 단계 작아져요.'},{t:'통행료 면제권',d:'다음에 상대 땅을 밟아도 통행료가 없어요.'},{t:'순간이동',d:'다음 ⭐ 칸으로 날아가요!'},{t:'힌트 선물',d:'힌트가 1개 늘어요.'},{t:'긴 단어 도전',d:'지금 바로 4글자 이상 단어를 말하면 +3칸!'},{t:'보너스 점수',d:'점수 +2점!'},
    {t:'맞바람',d:'상대가 2칸 뒤로 밀려나요!'},{t:'두 배 부스터',d:'다음 턴 전진 칸이 두 배!'},{t:'땅 바꾸기',d:'내 가장 작은 땅과 상대의 가장 큰 땅을 바꿔요!'},{t:'복권',d:'반반! 앞으로 4칸 아니면 뒤로 2칸.'},{t:'선물 상자',d:'1~3점이 들어 있어요. 열어 봐요!'},{t:'세금 징수',d:'상대 점수가 2점 줄어요.'}],
-  cardW:[3,3,1,2,2,3,2,3,2,3,3,2,2,3,1,2,2,1],notInDict:'표준국어대사전에 없는 말이에요',override:'그래도 인정 ✔',gradeName:['★ 쉬운 말','★★ 보통 말','★★★ 어려운 말'],score:'점',goalPts:'도착 +5점',finalWin:'{n} 최종 우승!',target:'20점 먼저 넘기면 최종 우승',challengeOk:'긴 단어 성공! +3칸',challengeNo:'4글자가 안 돼서 보너스 없음',freepass:'면제권 사용! 통행료 없음',dictMiss:'사전에 없는 말'},
+  cardW:[3,3,1,2,2,3,2,3,2,3,3,2,2,3,1,2,2,1],notInDict:'표준국어대사전에 없는 말이에요',override:'그래도 인정 ✔',gradeName:['★ 쉬운 말','★★ 보통 말','★★★ 어려운 말'],score:'점',goalPts:'도착 +5점',finalWin:'{n} 최종 우승!',target:'30점 먼저 넘기면 최종 우승',challengeOk:'긴 단어 성공! +3칸',challengeNo:'4글자가 안 돼서 보너스 없음',freepass:'면제권 사용! 통행료 없음',dictMiss:'사전에 없는 말'},
  en:{title:'Word Chain Race',kid:'Kid mode',back:'← Re-pick player 1',next1:'Next player →',next2:'Go!',pick1:'Player 1, pick a character',pick2:'Player 2, pick a character',howto:'How to play',map:'Race map',chance:'Chance card',ok:'OK',
   accept:'Yes!',retry:'Say again',typego:'Enter',pass:'Pass (I give up)',undo:'Foul! Undo',quit:'Start over',again:'Play again',usedlbl:'Used words (no repeats)',hint:'Hint ({n} left)',hintNone:'No hints left',sosBtn:'Hint',hintShow:'How about this word?',hintEmpty:'No hint for that letter (hint not used)',deadEnd:'No word starts with "{s}" — not allowed',noword:'No word starts with this letter!',freeword:'Say any word',micErr:'Microphone error: {e}. Type your word below.',
-  rules:['The mic keeps listening once you start. <b>No time limit.</b> <b>Harder words go further!</b> ★ 3–4 letters: 1 · ★★ 5–6: 2 · ★★★ 7+: 3. Answer within 5s for +1 (kid mode: 10s).','<b>Land owners</b>: the square you stop on gets your house. Stop on your own land again to upgrade it: house → building → hotel. The other player pays a toll of 1 / 2 / 3 steps. Lands stay for the next lap!','⭐ gives +2. 🍌 is an <b>escape quiz</b>: say one more word to stay! Fail and you slide back 2. ? is a chance card (12 kinds).','<b>Points</b>: reaching 32 is +5, house 1 · building 2 · hotel 3. Keep playing laps; <b>first past 20 points wins the game!</b>','Words need 3+ letters and can\'t repeat. If a word isn\'t real, tap ↩️ to undo. Stuck with no word? Tap 🆘 and say any word.'],
-  legend:[['#2f9a52','⭐ Bonus +2'],['#e0443c','🍌 Trap −2'],['#8e3fd1','? Chance'],['#ffd34d','🏠 My land']],
+  rules:['The mic keeps listening once you start. <b>No time limit.</b> <b>Harder words go further!</b> ★ 3–4 letters: 1 · ★★ 5–6: 2 · ★★★ 7+: 3. Answer within 5s for +1 (kid mode: 10s).','<b>Land owners</b>: the square you stop on gets your house. Stop on your own land again to upgrade it: house → building → hotel. The other player pays a toll of 1 / 2 / 3 steps. Lands stay for the next lap!','⭐ gives +2. 🍌 is an <b>escape quiz</b>: say one more word to stay! Fail and you slide back 2. ? is a chance card (18 kinds). Land rules apply wherever you end up.','<b>Points</b>: ★★ +1, ★★★ +2 per word, reaching 32 is +5, house 1 · building 2 · hotel 3. <b>First past 30 points wins instantly!</b>','Your steps are a <b>maximum</b>: pick where to stop. A ★★★ word also lets you plant a flag on any empty square.','🚉 Station: teleport to the other station. 🏗️ Works: one of your buildings grows for free.','Words need 3+ letters and can\'t repeat. If a word isn\'t real, tap ↩️ to undo. Stuck with no word? Tap 🆘 and say any word.'],
+  legend:[],station_tag:'STN',works_tag:'WORK',station:'🚉 Station! Off to the other station',works:'🏗️ Works! One of your buildings grows',worksNone:'🏗️ Works! No building, so +1 point',choose:'Pick where to stop (up to {n})',goMax:'All {n}!',wordPts:'+{n} pts',flagPick:'★★★ Hard word! Pick any empty square for a flag',flagSkip:'Skip',
   any:'Any word',needlbl:'Must start with:',last:'Last word',turnOf:'\'s turn',listening:'Listening… say a word!',tapMic:'Tap the mic once — it keeps listening',noMic:'The microphone isn\'t available on this screen. Type your word below.',micDenied:'Microphone access was denied. Type your word instead.',nothing:'Didn\'t catch that. Try again.',
   tooShort:'Needs 3 or more letters',wrongStart:'Must start with "{s}"',used:'Already used',notHangul:'Letters only',
   move:'Move {n}!',moveWhy:'{len} letters = {a}{fast}',fast:' + 1 for speed',bonus:'Bonus square! +2',trap:'🍌 Slippery! Say one more word to escape!',escaped:'Escaped! You stay!',slipped:'Slipped! Back 2',trapTurn:'Escape quiz! One more word!',toll:'{n}\'s {b}! Toll: back {k}',claim:'Square {n} is yours!',bld:['house','building','hotel'],upgrade:'Upgraded to a {b}!',lap:'One more lap (keep lands)',newgame:'New game',round:'Round',roundWins:'Round wins',passed:'Pass! Back 1',undone:'Undone',win:'{n} wins!',words:'Words said',avg:'Avg answer',lands:'Lands',steps:['3–4 letters: 1','5–6: 2','7+: 3'],fastchip:'fast +1',start_cell:'START',goal_cell:'GOAL',
   cards:[{t:'Again!',d:'Take another turn right now.'},{t:'Jump 3',d:'Hop forward 3 squares.'},{t:'Swap places',d:'Trade places with the other player!'},{t:'Slip',d:'Slide back 2 squares.'},{t:'Land gift',d:'The squares on either side of you become your land.'},
    {t:'Free upgrade',d:'One of your buildings grows a level! (or this square becomes yours)'},{t:'Wrecking crew',d:'The other player\'s biggest building shrinks a level.'},{t:'Toll pass',d:'Your next toll is free.'},{t:'Teleport',d:'Fly to the next ⭐ square!'},{t:'Hint gift',d:'+1 hint.'},{t:'Long word dare',d:'Say a 7+ letter word right now for +3!'},{t:'Bonus points',d:'+2 points!'},
    {t:'Headwind',d:'The other player is pushed back 2!'},{t:'Double booster',d:'Your next move counts double!'},{t:'Land swap',d:'Swap your smallest land for their biggest!'},{t:'Lottery',d:'50/50: forward 4 or back 2.'},{t:'Gift box',d:'1 to 3 points inside. Open it!'},{t:'Tax day',d:'The other player loses 2 points.'}],
-  cardW:[3,3,1,2,2,3,2,3,2,3,3,2,2,3,1,2,2,1],notInDict:'Not in the dictionary',override:'Allow it ✔',gradeName:['★ easy','★★ normal','★★★ hard'],score:'pts',goalPts:'Goal +5',finalWin:'{n} wins the game!',target:'First to 20 points wins',challengeOk:'Long word! +3',challengeNo:'Under 7 letters — no bonus',freepass:'Toll pass used!',dictMiss:'not in dictionary',}
+  cardW:[3,3,1,2,2,3,2,3,2,3,3,2,2,3,1,2,2,1],notInDict:'Not in the dictionary',override:'Allow it ✔',gradeName:['★ easy','★★ normal','★★★ hard'],score:'pts',goalPts:'Goal +5',finalWin:'{n} wins the game!',target:'First to 30 points wins',challengeOk:'Long word! +3',challengeNo:'Under 7 letters — no bonus',freepass:'Toll pass used!',dictMiss:'not in dictionary',}
 };
 // ---------- hint dictionaries (kid-friendly nouns) ----------
 const DICT={
@@ -422,9 +428,9 @@ const DUEUM={'라':'나','락':'낙','란':'난','람':'남','랑':'낭','래':'
 
 // ---------- board: a square loop of extruded tiles, Modoo-Marble style ----------
 const N=32, CORNER=58, TW=52, DEPTH=58, BW=480;   // 4 corners + 7 tiles per side
-const BONUS={4:1,8:1,14:1,22:1,30:1}, TRAP={6:1,12:1,20:1,24:1,29:1}, CHANCE={10:1,18:1,27:1};
+const BONUS={5:1,20:1}, TRAP={12:1,26:1}, CHANCE={8:1,16:1,24:1}, STATION={3:1,19:1}, WORKS={14:1};
 const ZONE=[['#5ccf7a','#2f9a52'],['#4fb6ff','#2a7fc4'],['#c86bff','#8e3fd1'],['#ffb84d','#d97a1a']]; // bottom,right,top,left [light,dark]
-const special=i=>i===0||i===N-1||BONUS[i]||TRAP[i]||CHANCE[i];
+const special=i=>i===0||i===N-1||BONUS[i]||TRAP[i]||CHANCE[i]||STATION[i]||WORKS[i];
 // tile geometry: returns {x,y,w,h,side} of the tile's top face
 function tileRect(i){
   const s=Math.floor(i/8), k=i%8;              // side 0..3, k=0 is the corner
@@ -467,6 +473,8 @@ function tileIcon(i,cx,cy){
   if(BONUS[i])return `<path transform="translate(${cx} ${cy-1})" d="M0 -9l2.6 5.6 6.2.7-4.6 4.2 1.3 6.1L0 4.5l-5.5 3.1 1.3-6.1-4.6-4.2 6.2-.7z" fill="#ffd34d" stroke="#b07c00" stroke-width="1"/><text x="${cx}" y="${cy+17}" text-anchor="middle" class="tag">+2</text>`;
   if(TRAP[i])return `<g transform="translate(${cx} ${cy-2})"><path d="M-8 -4q8-8 16 0q-8 8-16 0z" fill="#ffd34d" stroke="#b07c00" stroke-width="1"/><path d="M-8 -4q8 6 16 0" fill="none" stroke="#b07c00" stroke-width="1"/></g><text x="${cx}" y="${cy+17}" text-anchor="middle" class="tag">−2</text>`;
   if(CHANCE[i])return `<g transform="translate(${cx} ${cy-2}) rotate(-12)"><rect x="-7" y="-9" width="14" height="18" rx="2" fill="#fff" stroke="#8e3fd1" stroke-width="1.5"/><text y="4" text-anchor="middle" font-size="12" font-family="Jua,sans-serif" fill="#8e3fd1">?</text></g>`;
+  if(STATION[i])return `<g transform="translate(${cx} ${cy-3})"><rect x="-10" y="-7" width="20" height="13" rx="4" fill="#4fb6ff" stroke="#2a7fc4" stroke-width="1.2"/><rect x="-7" y="-4" width="5" height="4" fill="#fff"/><rect x="2" y="-4" width="5" height="4" fill="#fff"/><circle cx="-6" cy="7" r="2" fill="#2b2340"/><circle cx="6" cy="7" r="2" fill="#2b2340"/><path d="M-10 -9h20" stroke="#2a7fc4" stroke-width="2"/></g><text x="${cx}" y="${cy+17}" text-anchor="middle" class="tag">${t('station_tag')}</text>`;
+  if(WORKS[i])return `<g transform="translate(${cx} ${cy-2})"><rect x="-9" y="-2" width="18" height="10" fill="#ffd34d" stroke="#b07c00" stroke-width="1.2"/><path d="M-6 -2V-12h8l6 5" fill="none" stroke="#b07c00" stroke-width="2.5"/><path d="M8 -7v6" stroke="#b07c00" stroke-width="1.5"/><rect x="-3" y="1" width="6" height="4" fill="#2b2340"/></g><text x="${cx}" y="${cy+17}" text-anchor="middle" class="tag">${t('works_tag')}</text>`;
   return '';
 }
 function drawBoard(){
@@ -492,11 +500,11 @@ function drawBoard(){
   s+=treeP(100,380,1)+treeP(130,395,.8)+treeP(150,100,.7)+treeP(330,150,.8)+treeP(300,370,.7);
   // tiles
   for(let i=0;i<N;i++){const r=tileRect(i);const [lt,dk]=ZONE[r.side];const {cx,cy}=center(i);
-    let top=lt;if(i===0||i===N-1)top='#ffd34d';else if(BONUS[i])top='#e3f7e8';else if(TRAP[i])top='#ffd3cf';else if(CHANCE[i])top='#efe0ff';
-    const band=(i===0||i===N-1)?'#b07c00':BONUS[i]?'#2f9a52':TRAP[i]?'#e0443c':CHANCE[i]?'#8e3fd1':dk;
+    let top=lt;if(i===0||i===N-1)top='#ffd34d';else if(BONUS[i])top='#e3f7e8';else if(TRAP[i])top='#ffd3cf';else if(CHANCE[i])top='#efe0ff';else if(STATION[i])top='#dff1ff';else if(WORKS[i])top='#fff3c4';
+    const band=(i===0||i===N-1)?'#b07c00':BONUS[i]?'#2f9a52':TRAP[i]?'#e0443c':CHANCE[i]?'#8e3fd1':STATION[i]?'#2a7fc4':WORKS[i]?'#b07c00':dk;
     // extrusion (front face) then top face
     s+=`<rect x="${r.x+1}" y="${r.y+5}" width="${r.w-2}" height="${r.h-2}" rx="8" fill="#5a4030"/>`;
-    s+=`<rect x="${r.x+1}" y="${r.y+1}" width="${r.w-2}" height="${r.h-2}" rx="8" fill="${top}" stroke="#fff" stroke-width="1.5"/>`;
+    s+=`<rect class="tile" data-i="${i}" x="${r.x+1}" y="${r.y+1}" width="${r.w-2}" height="${r.h-2}" rx="8" fill="${top}" stroke="#fff" stroke-width="1.5"/>`;
     // colored band on the outer edge of the tile
     const bw=6;
     if(r.side===0)s+=`<rect x="${r.x+1}" y="${r.y+r.h-bw-1}" width="${r.w-2}" height="${bw}" rx="3" fill="${band}"/>`;
@@ -510,7 +518,7 @@ function drawBoard(){
   }
   // goal flag
   {const {cx,cy}=center(N-1);s+=`<g transform="translate(${cx+16} ${cy-30})"><rect x="-1.5" width="3" height="34" fill="#2b2340"/><path d="M1.5 0h22l-5 7 5 7h-22z" fill="#ff6b4a"/><path d="M1.5 0h5.5v4.7h-5.5zM12.5 0h5.5v4.7h-5.5zM7 4.7h5.5v4.6H7zM18 4.7h5.5v4.6H18zM1.5 9.3h5.5V14h-5.5zM12.5 9.3h5.5V14h-5.5z" fill="#2b2340" opacity=".55"/></g>`;}
-  s+=`<g id="tokens"></g>`;svg.innerHTML=s;
+  s+=`<g id="picks"></g><g id="tokens"></g>`;svg.innerHTML=s;
   $('tokens').innerHTML=S.players.map((p,i)=>`<g class="token" id="tok${i}"><g transform="translate(${i?12:-12},-16) scale(.72)">${charSVG(CHARS[p.ch],60).replace('<svg','<svg x="-30" y="-30"')}</g></g>`).join('');
   placeTokens();drawOwners();renderCenter();
 }
@@ -520,6 +528,37 @@ function renderCenter(){
 }
 function placeTokens(){S.players.forEach((p,i)=>{const {cx,cy}=center(p.pos);$('tok'+i).setAttribute('transform',`translate(${cx},${cy})`);});renderCenter();}
 // hop tile by tile with a tick per step
+// the player picks any tile within reach; rings pulse on the board and a shortcut button takes the full distance
+let choosing=null;
+function chooseStop(pi,n,cb){
+  const p=S.players[pi];const from=p.pos;const max=Math.min(N-1,from+n);
+  if(max-from<=1){cb(max);return;}
+  choosing={pi,from,max,cb};
+  const g=$('picks');let h='';
+  for(let i=from+1;i<=max;i++){const {cx,cy}=center(i);h+=`<circle class="pickring" data-i="${i}" cx="${cx}" cy="${cy}" r="24"/>`;}
+  g.innerHTML=h;
+  $('maxbtn').textContent=t('goMax',{n:max-from});$('maxbtn').hidden=false;$('hint').textContent=t('choose',{n:max-from});
+  $('boardcard').scrollIntoView({behavior:'smooth',block:'center'});SFX.listen();
+}
+function resolveChoice(i){if(!choosing)return;const c=choosing;if(i<=c.from||i>c.max)return;choosing=null;$('picks').innerHTML='';$('maxbtn').hidden=true;SFX.tap();c.cb(i);}
+function initPickHandlers(){
+  $('board').addEventListener('click',e=>{const el=e.target.closest('.pickring,.tile');if(!el)return;const i=+el.dataset.i;
+    if(choosing)resolveChoice(i);else if(flagging)resolveFlag(i);});
+  $('maxbtn').onclick=()=>{if(choosing)resolveChoice(choosing.max);else if(flagging)resolveFlag(null);};
+}
+// ★★★ reward: plant a flag on any empty plain tile
+let flagging=null;
+function chooseFlag(pi,cb){
+  const empties=[];for(let i=1;i<N-1;i++)if(!special(i)&&S.owner[i]==null)empties.push(i);
+  if(!empties.length){cb();return;}
+  flagging={pi,cb,set:new Set(empties)};
+  $('picks').innerHTML=empties.map(i=>{const {cx,cy}=center(i);return `<circle class="pickring flag" data-i="${i}" cx="${cx}" cy="${cy}" r="24"/>`;}).join('');
+  $('maxbtn').textContent=t('flagSkip');$('maxbtn').hidden=false;$('hint').textContent=t('flagPick');
+  burst('🚩',S.lang==='ko'?'★★★ 깃발 하나 덤!':'★★★ Bonus flag!','',{small:true,ms:1800});SFX.chance();
+}
+function resolveFlag(i){if(!flagging)return;const f=flagging;if(i!=null&&!f.set.has(i))return;flagging=null;$('picks').innerHTML='';$('maxbtn').hidden=true;
+  if(i!=null){S.owner[i]=f.pi;S.level[i]=1;SFX.claim();burst('🚩',t('claim',{n:i+1}),'',{small:true,ms:1200});drawOwners();}
+  f.cb();}
 function moveToken(pi,to,cb){
   const p=S.players[pi];const dir=to>p.pos?1:-1;
   const step=()=>{if(p.pos===to){cb&&cb();return;}p.pos+=dir;placeTokens();SFX.hop();setTimeout(step,190);};
@@ -655,7 +694,7 @@ function fastBonus(sec,kid){return sec<(kid?10:5)?1:0;}
 function lenSteps(w){return grade(w);}
 function tick(){const p=S.players[S.turn];$('mic').classList.toggle('fast',fastBonus(elapsed(),p.kid)>0);}
 function scoreOf(i){let b=0;for(const k in S.owner)if(S.owner[k]===i)b+=S.level[k]||1;return Math.max(0,S.wins[i]*5+b+S.bonusPts[i]);}
-function checkFinal(){const sc=[scoreOf(0),scoreOf(1)];if(Math.max(...sc)>=20){finale(sc[0]>=sc[1]?0:1);return true;}return false;}
+function checkFinal(){const sc=[scoreOf(0),scoreOf(1)];if(Math.max(...sc)>=30){finale(sc[0]>=sc[1]?0:1);return true;}return false;}
 function renderStandings(){
   $('maplbl')&&($('maplbl').textContent=t('map')+(S.round>1?' · '+t('round')+' '+S.round:''));
   $('standings').innerHTML=S.players.map((p,i)=>{const lands=Object.values(S.owner).filter(o=>o===i).length;return `<div class="${i===S.turn?'active':''}">${charSVG(CHARS[p.ch],30)}<span>${p.name}</span><b>${p.pos+1}</b><span style="font-size:.8rem">⚑${lands} · <b style="font-size:1rem;color:var(--accent)">${scoreOf(i)}</b>${t('score')}</span>${S.freepass[i]?'<span title="toll pass">🎫</span>':''}</div>`;}).join('');
@@ -732,15 +771,21 @@ function commit(){
   if(S.challenge===pi){S.challenge=null;const okc=S.lang==='ko'?pending.word.length>=4:pending.word.length>=7;if(okc){extra=3;chal=' · '+t('challengeOk');}else chal=' · '+t('challengeNo');}
   let total=n+extra;if(S.double[pi]){S.double[pi]=false;total*=2;chal+=' · ×2';}
   const line=t('gradeName')[a-1]+` = ${a}`+(S.lang==='ko'?'칸':'')+(fb?(S.lang==='ko'?' ⚡빨리 +1':' ⚡fast +1'):'')+chal;
-  burst(pending.word,line,(S.lang==='ko'?`${total}칸 전진!`:`Move ${total}!`),{ms:1900});
+  const wp=a===3?2:a===2?1:0;if(wp){S.bonusPts[pi]+=wp;}
+  burst(pending.word,line+(wp?' · '+t('wordPts',{n:wp}):''),(S.lang==='ko'?`최대 ${total}칸!`:`Up to ${total}!`),{ms:1900});
   SFX.count(total);
-  setTimeout(()=>moveToken(pi,Math.min(N-1,p.pos+total),()=>setTimeout(()=>land(pi,false),350)),1300);
+  const hard=a===3;
+  setTimeout(()=>chooseStop(pi,total,to=>moveToken(pi,to,()=>setTimeout(()=>land(pi,false,hard),350))),1300);
 }
-function land(pi,fromCard){
-  const p=S.players[pi];const pos=p.pos;let extraTurn=false;
+function land(pi,fromCard,hard){
+  const p=S.players[pi];const pos=p.pos;let extraTurn=false;const done=(x)=>{if(hard)chooseFlag(pi,()=>after(pi,x));else after(pi,x);};
   if(pos>=N-1){setTimeout(()=>win(pi),300);return;}
   const o=S.owner[pos];
-  if(BONUS[pos]){SFX.bonus();burst('⭐',t('bonus'),'',{small:true});setTimeout(()=>moveToken(pi,Math.min(N-1,pos+2),()=>after(pi,false)),500);}
+  if(BONUS[pos]){SFX.bonus();burst('⭐',t('bonus'),'',{small:true});setTimeout(()=>moveToken(pi,Math.min(N-1,pos+2),()=>setTimeout(()=>land(pi,true,hard),300)),500);}
+  else if(STATION[pos]){const other=Object.keys(STATION).map(Number).find(x=>x!==pos);SFX.swap();burst('🚉',t('station'),'',{small:true,confetti:false,ms:1500});setTimeout(()=>{p.pos=other;placeTokens();setTimeout(()=>done(false),500);},900);}
+  else if(WORKS[pos]){const mine=Object.keys(S.owner).filter(c=>S.owner[c]===pi&&(S.level[c]||1)<3).sort((a,b)=>(S.level[a]||1)-(S.level[b]||1));
+    if(mine.length){S.level[mine[0]]=(S.level[mine[0]]||1)+1;burst('🏗️',t('works'),'',{small:true,ms:1600});}else{S.bonusPts[pi]+=1;burst('🏗️',t('worksNone'),'',{small:true,ms:1600});}
+    SFX.bonus();drawOwners();done(false);}
   else if(TRAP[pos]){SFX.trap();burst('🍌',t('trap'),'',{small:true,confetti:false,ms:2200});S.trap=pi;renderStandings();setTimeout(startTurn,900);}
   else if(CHANCE[pos]&&!fromCard){
     SFX.chance();
@@ -773,10 +818,10 @@ function land(pi,fromCard){
       else {S.bonusPts[1-pi]=Math.max(S.bonusPts[1-pi]-2,-99);SFX.toll();after(pi,false);}
     });
   }
-  else if(o!=null&&o!==pi&&S.freepass[pi]){S.freepass[pi]=false;SFX.good();burst('🎫',t('freepass'),'',{small:true,ms:1500});after(pi,false);}
-  else if(o!=null&&o!==pi){const lv=S.level[pos]||1;SFX.toll();burst(['🏠','🏢','🏨'][lv-1],t('toll',{n:S.players[o].name,b:t('bld')[lv-1],k:lv}),'',{small:true,confetti:false,ms:1900});setTimeout(()=>moveToken(pi,Math.max(0,pos-lv),()=>after(pi,false)),800);}
-  else if(o===pi){const lv=S.level[pos]||1;if(lv<3){S.level[pos]=lv+1;SFX.bonus();burst(['🏠','🏢','🏨'][lv],t('upgrade',{b:t('bld')[lv]}),'',{small:true,ms:1600});drawOwners();}after(pi,false);}
-  else{if(o==null&&pos>0){S.owner[pos]=pi;S.level[pos]=1;SFX.claim();burst('🏠',t('claim',{n:pos+1}),'',{small:true,ms:1300});drawOwners();}after(pi,false);}
+  else if(o!=null&&o!==pi&&S.freepass[pi]){S.freepass[pi]=false;SFX.good();burst('🎫',t('freepass'),'',{small:true,ms:1500});done(false);}
+  else if(o!=null&&o!==pi){const lv=S.level[pos]||1;SFX.toll();burst(['🏠','🏢','🏨'][lv-1],t('toll',{n:S.players[o].name,b:t('bld')[lv-1],k:lv}),'',{small:true,confetti:false,ms:1900});setTimeout(()=>moveToken(pi,Math.max(0,pos-lv),()=>setTimeout(()=>land(pi,true,hard),300)),800);}
+  else if(o===pi){const lv=S.level[pos]||1;if(lv<3){S.level[pos]=lv+1;SFX.bonus();burst(['🏠','🏢','🏨'][lv],t('upgrade',{b:t('bld')[lv]}),'',{small:true,ms:1600});drawOwners();}done(false);}
+  else{if(o==null&&pos>0){S.owner[pos]=pi;S.level[pos]=1;SFX.claim();burst('🏠',t('claim',{n:pos+1}),'',{small:true,ms:1300});drawOwners();}done(false);}
 }
 function after(pi,extraTurn){
   const p=S.players[pi];renderStandings();
@@ -795,12 +840,12 @@ $('override').onclick=()=>{if(pending&&pending.soft){pending.ok=true;pending.sof
 $('pass').onclick=()=>{
   clearInterval(timerId);stopListening();const p=S.players[S.turn];
   S.history.push({pi:S.turn,word:'—',snap:snapshot(),pass:true});
-  if(S.trap===S.turn){S.trap=null;SFX.trap();burst('🍌',t('slipped'),'',{small:true,confetti:false});moveToken(S.turn,Math.max(0,p.pos-2),()=>finish(S.turn,false));return;}
+  if(S.trap===S.turn){S.trap=null;SFX.trap();burst('🍌',t('slipped'),'',{small:true,confetti:false});moveToken(S.turn,Math.max(0,p.pos-2),()=>setTimeout(()=>land(S.turn,true),300));return;}
   SFX.pass();burst('⏭️',t('passed'),'',{small:true,confetti:false,ms:1200});moveToken(S.turn,Math.max(0,p.pos-1),()=>finish(S.turn,false));
 };
 $('undo').onclick=()=>{
   const h=S.history.pop();if(!h)return;clearInterval(timerId);$('overlay').hidden=true;
-  restore(h.snap);const p=S.players[h.pi];if(!h.pass){S.used.delete(h.word);p.times.pop();p.words--;}
+  choosing=null;flagging=null;$('picks').innerHTML='';$('maxbtn').hidden=true;restore(h.snap);const p=S.players[h.pi];if(!h.pass){S.used.delete(h.word);p.times.pop();p.words--;}
   placeTokens();drawOwners();toast(t('undone'));setTimeout(startTurn,500);
 };
 $('typego').onclick=()=>{const v=$('typed').value;if(!v.trim())return;const sec=elapsed();showHeard(v,sec);if(pending&&pending.ok){$('typed').value='';commit();}};
@@ -814,7 +859,7 @@ function win(i){
   const avg=p.times.length?(p.times.reduce((a,b)=>a+b,0)/p.times.length).toFixed(1):'0';
   const lands=Object.values(S.owner).filter(o=>o===i).length;
   S.wins[i]++;
-  const sc=[scoreOf(0),scoreOf(1)];const fin=Math.max(...sc)>=20;
+  const sc=[scoreOf(0),scoreOf(1)];const fin=Math.max(...sc)>=30;
   if(fin){$('wincard').hidden=true;finale(sc[0]>=sc[1]?0:1);return;}
   $('winstat').innerHTML=`<div>${t('words')}<b>${p.words}</b></div><div>${t('avg')}<b>${avg}s</b></div><div>${t('lands')}<b>${lands}</b></div>`+
     `<div style="width:100%;margin-top:6px">${t('goalPts')} · ${t('target')}<b style="font-size:1.8rem">${S.players.map((q,k)=>`${q.name} ${sc[k]}${t('score')}`).join(' : ')}</b></div>`;
@@ -879,5 +924,5 @@ $('mic').onclick=()=>{
 };
 $('retry').onclick=()=>{$('heard').classList.remove('show');pending=null;if(rec&&!micBlocked)startListening();};
 $('mute').textContent=SFX.isMuted()?'🔇':'🔊';$('mute').onclick=()=>{$('mute').textContent=SFX.toggle()?'🔇':'🔊';};
-applyLang();
+initPickHandlers();applyLang();
 </script>
